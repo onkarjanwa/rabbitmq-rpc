@@ -1,7 +1,19 @@
 {
   "name": "rabbitmq-rpc",
   "version": "1.0.0",
-  "description": "Using RabbitMQ as RPC",
+  "description": "Using RabbitMQ for RPC",
+  "keywords": [
+    "rabbitmq",
+    "rpc",
+    "typescript",
+    "javascript",
+    "remote procedure call"
+  ],
+  "homepage": "https://github.com/onkarjanwa/rabbitmq-rpc",
+  "bugs": {
+    "url": "https://github.com/onkarjanwa/rabbitmq-rpc/issues"
+  },
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc && shx cp ./package.json ./dist/package.json && shx cp ./package-lock.json ./dist/package-lock.json",
     "watch": "watch 'npm run build' ./src",
@@ -9,8 +21,17 @@
     "test": "NODE_ENV=testing mocha",
     "coverage": "nyc npm run test"
   },
-  "author": "",
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/onkarjanwa/rabbitmq-rpc.git"
+  },
+  "author": "Onkar Janwa (onkarjanwa.com)",
+  "license": "MIT",
+  "private": false,
+  "engines": {
+    "node": ">=12.13.0"
+  },
+  "engineStrict": true,
   "dependencies": {
     "@types/sinon": "^9.0.10",
     "amqplib": "^0.6.0",
