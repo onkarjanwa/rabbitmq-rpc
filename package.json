@@ -11,11 +11,6 @@
   },
   "author": "",
   "license": "ISC",
-  "types": "./dist/index.d.ts",
-  "main": "./dist/index.js",
-  "files": [
-    "dist/"
-  ],
   "dependencies": {
     "@types/sinon": "^9.0.10",
     "amqplib": "^0.6.0",
