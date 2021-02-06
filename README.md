@@ -12,14 +12,8 @@ Rabbitmq RPC
 
 # Local setup
 - Run rabbitmq using docker command `docker run -p 5672:5672 rabbitmq:3`.
-- Checkout the repository
-- Run `npm install` and `npm build`
+- Run `npm install remote-procedure-call-rabbitmq`
 - Done!
-
-# Local Testing
-- Open Terminal and run `node dist/test/server/js`
-- Open another Terminal and run `node dist/test/client.js`
-- You can check the result on terminal that the rpc client is receiving response from rpc server.
 
 # Example for calling RPC Server
 ```

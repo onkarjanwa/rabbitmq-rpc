@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "module": "commonjs",
-        "target": "es2016",
+        "target": "es5",
         "noImplicitAny": true,
         "strictNullChecks": true,
         "moduleResolution": "node",
@@ -12,10 +12,10 @@
         "emitDecoratorMetadata": true,
         "resolveJsonModule": true,
         "esModuleInterop": true,
-        "declaration": true, 
+        "declaration": true,
         "useDefineForClassFields": true,
         "strict": true,
-        "outDir": "dist",
+        "outDir": "lib",
         "baseUrl": ".",
         "paths": {
             "*":[
@@ -28,7 +28,7 @@
     ],
     "exclude": [
         "node_modules",
-        "dist/",
+        "lib/",
         "src/**/*.spec.ts"
     ]
 }

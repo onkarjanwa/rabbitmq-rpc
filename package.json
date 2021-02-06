@@ -1,6 +1,6 @@
 {
   "name": "remote-procedure-call-rabbitmq",
-  "version": "1.0.1",
+  "version": "1.0.7",
   "description": "Using RabbitMQ for RPC",
   "keywords": [
     "rabbitmq",
@@ -13,9 +13,11 @@
   "bugs": {
     "url": "https://github.com/onkarjanwa/rabbitmq-rpc/issues"
   },
-  "main": "dist/index.js",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "scripts": {
-    "build": "tsc && shx cp ./package.json ./dist/package.json && shx cp ./package-lock.json ./dist/package-lock.json",
+    "prepare": "npm run build",
+    "build": "tsc",
     "watch": "watch 'npm run build' ./src",
     "lint": "tsc --noEmit && eslint \"*/**/*.ts\"",
     "test": "NODE_ENV=testing mocha",
@@ -31,6 +33,9 @@
   "engines": {
     "node": ">=12.13.0"
   },
+  "files": [
+    "lib/*"
+  ],
   "engineStrict": true,
   "dependencies": {
     "@types/sinon": "^9.0.10",
