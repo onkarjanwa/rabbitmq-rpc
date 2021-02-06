@@ -1,6 +1,6 @@
 {
   "name": "remote-procedure-call-rabbitmq",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Using RabbitMQ for RPC",
   "keywords": [
     "rabbitmq",
@@ -43,7 +43,7 @@
     "@types/events": "^3.0.0",
     "@types/mocha": "^8.2.0",
     "@types/uuid": "^8.3.0",
-    "chai": "^4.2.0",
+    "chai": "^4.3.0",
     "chai-http": "^4.3.0",
     "mocha": "^8.2.1",
     "nyc": "^15.1.0",
