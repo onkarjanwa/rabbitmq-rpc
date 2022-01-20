@@ -21,6 +21,8 @@ export class RPCServer implements IRPCServer {
     private readonly channelRecoveryMaxTryCount: number = 10;
     private readonly reconnectTimeInSeconds: number = 1;
     private reconnectEnable: boolean = true;
+    private sendToQueueErrors: any = {};
+    private channelSetupTS: number;
 
     /**
      * RPCServer constructor
@@ -53,7 +55,7 @@ export class RPCServer implements IRPCServer {
      * Connect rpc server
      */
     public start(): Promise<void> {
-        return this.connectIfNotConnected().then(() => {
+        return this.connectIfNotConnected(true).then(() => {
             this.log('Connected to amqp server');
             return Promise.resolve();
         });
@@ -63,12 +65,15 @@ export class RPCServer implements IRPCServer {
      * Disconnect rpc server
      */
     public stop(): Promise<void> {
-        return this.client.close().then(() => {
-            this.isConnected = false;
-            this.log('Connection closed to amqp server');
-            return Promise.resolve();
-        }).catch((error) => {
-            console.log(error);
+        return new Promise((resolve, reject) => {
+            this.client.close().then(() => {
+                this.isConnected = false;
+                this.log('Connection closed to amqp server');
+                return resolve();
+            }).catch((error) => {
+                this.logger.error(error);
+                reject(error);
+            });
         });
     }
 
@@ -92,14 +97,11 @@ export class RPCServer implements IRPCServer {
                     // so no need to call #close here
                     // also, 'close' is emitted after 'error',
                     // so no need for work already done in 'close' handler
-                    this.logger.error(err);
+                    this.logger.error('connection - on error', err);
                 });
                 this.client.on("close", (error) => {
                     this.isConnected = false;
                     this.log('connection closed');
-                    if (error) {
-                        this.logger.error(error);
-                    }
 
                     // Retry connection if closed for any reason
                     // RPC Server connection can only be closed by shutting down the process
@@ -158,11 +160,13 @@ export class RPCServer implements IRPCServer {
     }
 
     private async setupChannel() {
-        const channel = await this.client.createChannel();
+        this.channelSetupTS = (new Date()).getTime();
+        const channel = await this.client.createConfirmChannel();
         await channel.assertQueue(this.requestQueueName, {
             // Persistent messages and durable queues for a message to survive a server restart
             durable: true,
         });
+
         await channel.consume(this.requestQueueName, (message: amqp.ConsumeMessage | null) => {
             if (!message) {
                 return;
@@ -172,34 +176,82 @@ export class RPCServer implements IRPCServer {
             const responseQueueName = message.properties.replyTo;
             const correlationId = message.properties.correlationId;
 
-            this.executeService(messageData.action, messageData.data)
-                .then((result: any) => {
-                    const response = result ? Buffer.from(JSON.stringify(result)) : Buffer.from(JSON.stringify({}));
+            // check sendToQueue errors
+            // send error message on channel to close communication
+            const sendToQueueError = this.sendToQueueErrors[correlationId];
+            if (sendToQueueError) {
+                try {
                     channel.sendToQueue(
                         responseQueueName,
-                        response,
+                        Buffer.from(JSON.stringify(sendToQueueError)),
                         {
                             correlationId,
+                            type: 'error'
                         },
+                        (error) => {
+                            if (!error) {
+                                delete this.sendToQueueErrors[correlationId];
+                                channel.ack(message);
+                            }
+                        }
                     );
-
-                    return Promise.resolve();
-                })
-                .catch(error => {
-                    this.logger.error(error);
-                    channel.sendToQueue(
-                        responseQueueName,
-                        Buffer.from(JSON.stringify({})),
-                        {
-                            correlationId,
-                        },
-                    );
-                })
-                .then(() => {
-                    if (message) {
-                        channel.ack(message);
-                    }
-                });
+                } catch(error) {
+                    this.logger.error('this.sendToQueueErrors -> channel.sendToQueue', error);
+                }
+            } else {
+                this.executeService(messageData.action, correlationId, this.channelSetupTS, messageData.data)
+                    .then(({channelSetupId, result}) => {
+                        if (this.channelSetupTS === channelSetupId) {
+                            try {
+                                const response = result ? Buffer.from(JSON.stringify(result)) : Buffer.from(JSON.stringify({}));
+                                channel.sendToQueue(
+                                    responseQueueName,
+                                    response,
+                                    {
+                                        correlationId,
+                                    },
+                                    (error) => {
+                                        if (error) {
+                                            this.sendToQueueErrors[correlationId] = error.message;
+                                        } else {
+                                            channel.ack(message);
+                                            this.logger.info(`channel.sendToQueue - message ack`);
+                                        }
+                                    }
+                                );
+                            } catch(error) {
+                                this.sendToQueueErrors[correlationId] = (error as Error).message;
+                                this.logger.error('channel.sendToQueue', error);
+                            }
+                        }
+                    })
+                    .catch(({channelSetupId, error}) => {
+                        this.logger.error('executeService', error);
+                        if (this.channelSetupTS === channelSetupId) {
+                            try {
+                                channel.sendToQueue(
+                                    responseQueueName,
+                                    Buffer.from(JSON.stringify(error.message)),
+                                    {
+                                        correlationId,
+                                        type: 'error'
+                                    },
+                                    (error) => {
+                                        if (error) {
+                                            this.sendToQueueErrors[correlationId] = error.message;
+                                        } else {
+                                            channel.ack(message);
+                                            this.logger.info(`catch -> channel.sendToQueue - message ack`);
+                                        }
+                                    }
+                                );
+                            } catch(error) {
+                                this.sendToQueueErrors[correlationId] = (error as Error).message;
+                                this.logger.error('catch -> channel.sendToQueue', error);
+                            }
+                        }
+                    });
+            }
         });
 
         channel.on('closed', () => {
@@ -215,7 +267,7 @@ export class RPCServer implements IRPCServer {
         this.channel = channel;
     }
 
-    private executeService(serviceName: string, content: any): Promise<void> {
+    private executeService(serviceName: string, correlationId: string, channelSetupId: number, content: any): Promise<any> {
         return new Promise((resolve, reject) => {
             try {
                 const service = this.registeredServices.find(registeredService => registeredService.name === serviceName);
@@ -223,28 +275,55 @@ export class RPCServer implements IRPCServer {
                     throw new Error(`No service found for: ${serviceName}`);
                 }
 
-                this.log(`Service call initiated: ${serviceName}`);
+                this.log(`Service call initiated: ${serviceName} - ${correlationId}`);
 
                 service.fn(content)
                     .then((result: any) => {
-                        this.log(`Service call completed: ${serviceName}`);
-                        resolve(result);
+                        this.log(`Service call completed: ${serviceName} - ${correlationId}`);
+                        resolve({
+                            channelSetupId,
+                            result,
+                        });
                     })
                     .catch((err: Error) => {
                         throw err;
                     });
             } catch (error) {
-                reject(error);
+                reject({
+                    channelSetupId,
+                    error,
+                });
             }
         });
     }
 
-    private connectIfNotConnected(): Promise<void> {
+    private connectIfNotConnected(retry: boolean = false): Promise<void> {
         if (!this.isConnected) {
-            return this.connect();
-        } else {
-            return Promise.resolve();
+            if (retry) {
+                return this.retryConnect();
+            } else {
+                return this.connect();
+            }
         }
+        return Promise.resolve();
+    }
+
+    private async retryConnect(): Promise<void> {
+        const {error} = await this.connect()
+            .then(() => ({error: null}))
+            .catch((e) => ({error: e}));
+
+        if (error) {
+            this.log('Retrying Rabbitmq connection');
+            await this.wait(this.reconnectTimeInSeconds * 1000);
+            await this.retryConnect();
+        }
+    }
+
+    private wait(ms: number): Promise<void> {
+        return new Promise((resolve) => {
+            setTimeout(resolve, ms);
+        });
     }
 
     private log(message: string): void {

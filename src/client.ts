@@ -22,6 +22,7 @@ export class RPCClient implements IRPCClient {
     private logger: IRPCLogger = new RPCConsoleLogger('RabbitMQ RPCClient');
     private channelRecoveryTryCount: number = 0;
     private readonly channelRecoveryMaxTryCount: number = 10;
+    private readonly reconnectTimeInSeconds: number = 1;
 
     /**
      * RPCClient constructor
@@ -61,7 +62,7 @@ export class RPCClient implements IRPCClient {
      * Connect rpc client
      */
     public start(): Promise<void> {
-        return this.connectIfNotConnected().then(() => {
+        return this.connectIfNotConnected(true).then(() => {
             this.log('Connected to amqp server');
             return Promise.resolve();
         });
@@ -71,10 +72,15 @@ export class RPCClient implements IRPCClient {
      * Disconnect rpc client
      */
     public stop(): Promise<void> {
-        return this.client.close().then(() => {
-            this.isConnected = false;
-            this.log('Connection closed to amqp server');
-            return Promise.resolve();
+        return new Promise((resolve, reject) => {
+            this.client.close().then(() => {
+                this.isConnected = false;
+                this.log('Connection closed to amqp server');
+                return resolve();
+            }).catch((error) => {
+                this.logger.error(error);
+                reject(error);
+            });
         });
     }
 
@@ -177,12 +183,33 @@ export class RPCClient implements IRPCClient {
         this.channel = channel;
     }
 
-    private connectIfNotConnected(): Promise<void> {
+    private connectIfNotConnected(retry: boolean = false): Promise<void> {
         if (!this.isConnected) {
-            return this.connect();
-        } else {
-            return Promise.resolve();
+            if (retry) {
+                return this.retryConnect();
+            } else {
+                return this.connect();
+            }
         }
+        return Promise.resolve();
+    }
+
+    private async retryConnect(): Promise<void> {
+        const {error} = await this.connect()
+            .then(() => ({error: null}))
+            .catch((e) => ({error: e}));
+
+        if (error) {
+            this.log('Retrying Rabbitmq connection');
+            await this.wait(this.reconnectTimeInSeconds * 1000);
+            await this.retryConnect();
+        }
+    }
+
+    private wait(ms: number): Promise<void> {
+        return new Promise((resolve) => {
+            setTimeout(resolve, ms);
+        });
     }
 
     private log(message: string): void {
