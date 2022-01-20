@@ -1,6 +1,6 @@
 {
   "name": "remote-procedure-call-rabbitmq",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Using RabbitMQ for RPC",
   "keywords": [
     "rabbitmq",
