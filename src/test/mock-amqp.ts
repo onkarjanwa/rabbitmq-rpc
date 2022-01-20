@@ -57,7 +57,9 @@ class AmqpConnection extends EventManager {
         return new Channel();
     }
 
-    close() {}
+    close() {
+        return Promise.resolve();
+    }
 }
 
 /**

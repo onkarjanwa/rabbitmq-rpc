@@ -37,7 +37,7 @@ describe('RPC Server and Client Communication', () => {
         rpcServer.provide('test_service', spyServiceFn);
 
         // call
-        await rpcServer.close();
+        await rpcServer.stop();
         await rpcClient.call('test_service', {id: 1});
 
         // verify
