@@ -177,7 +177,9 @@ export class RPCServer implements IRPCServer {
             durable: true,
         });
 
-        await channel.prefetch(1);
+        if (this.channelPrefetchCount) {
+            await channel.prefetch(this.channelPrefetchCount);
+        }
 
         await channel.consume(this.requestQueueName, (message: amqp.ConsumeMessage | null) => {
             if (!message) {
