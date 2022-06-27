@@ -23,6 +23,7 @@ export class RPCServer implements IRPCServer {
     private reconnectEnable: boolean = true;
     private sendToQueueErrors: any = {};
     private channelSetupTS: number;
+    private channelPrefetchCount: number;
 
     /**
      * RPCServer constructor
@@ -49,6 +50,15 @@ export class RPCServer implements IRPCServer {
      */
     public setDebug(debug: boolean) {
         this.debug = debug;
+    }
+
+    /**
+     * Set channel prefetch count
+     * Set 1 to enable synchronous operations
+     * @param channelPrefetchCount
+     */
+    public setChannelPrefetchCount(channelPrefetchCount: number) {
+        this.channelPrefetchCount = channelPrefetchCount;
     }
 
     /**
@@ -166,6 +176,8 @@ export class RPCServer implements IRPCServer {
             // Persistent messages and durable queues for a message to survive a server restart
             durable: true,
         });
+
+        await channel.prefetch(1);
 
         await channel.consume(this.requestQueueName, (message: amqp.ConsumeMessage | null) => {
             if (!message) {
