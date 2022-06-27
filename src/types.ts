@@ -2,6 +2,7 @@ export type RPCServiceProviderFunction<D, V> = (data: D) => Promise<V>;
 
 export interface IRPCServer {
     setDebug(debug: boolean): void;
+    setChannelPrefetchCount(channelPrefetchCount: number): void;
     start(): Promise<void>;
     stop(): Promise<void>;
     provide<D, V>(
