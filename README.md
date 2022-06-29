@@ -11,7 +11,7 @@ Rabbitmq RPC
 - I have implemented rabbitmq-rpc based on articles [Remote procedure call (RPC)](https://www.rabbitmq.com/tutorials/tutorial-six-python.html) and [Direct Reply-to](https://www.rabbitmq.com/direct-reply-to.html).
 
 # Local setup
-- Run rabbitmq using docker command `docker run -p 5672:5672 rabbitmq:3`.
+- Run rabbitmq using docker command `docker run --name rpc -p 5672:5672 rabbitmq:3`.
 - Run `npm install remote-procedure-call-rabbitmq`
 - Done!
 
