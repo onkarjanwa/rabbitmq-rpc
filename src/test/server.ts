@@ -1,21 +1,47 @@
 import * as amqp from 'amqplib';
+import RPCConsoleLogger from '../logger';
 import {RPCServer} from '..';
 
 function serviceFn(data: any): Promise<any> {
     console.log('serviceFn called')
     return new Promise((resolve, reject) => {
-        resolve(data);
+        setTimeout(() => {
+            resolve(data);
+        }, 10000);
     });
 }
 
-const rpcServer = new RPCServer(amqp, {});
-rpcServer.setDebug(true);
-rpcServer.start().then(() => {
+const conf = {
+    "client": {
+        "protocol": "amqp",
+        "hostname": "127.0.0.1",
+        "port": 5677,
+        "username": "guest",
+        "password": "guest"
+    },
+    "server": {
+        "protocol": "amqp",
+        "hostname": "127.0.0.1",
+        "port": 5677,
+        "username": "guest",
+        "password": "guest"
+    }
+};
+
+(async () => {
+    const rpcServer = new RPCServer(amqp, conf.server, 'rpc_request_queue_one', new RPCConsoleLogger('RabbitMQ RPCServer'));
+    rpcServer.setDebug(true);
+    // rpcServer.setChannelPrefetchCount(1);
+    await rpcServer.start();
     rpcServer.provide('test', serviceFn);
-}).catch(error => {
-    console.log(error);
-    console.log(error.code, error.message);
-});
+
+
+    const rpcServerTwo = new RPCServer(amqp, conf.server, 'rpc_request_queue_two', new RPCConsoleLogger('RabbitMQ rpcServerTwo RPCServer'));
+    rpcServerTwo.setDebug(true);
+    // rpcServerTwo.setChannelPrefetchCount(1);
+    await rpcServerTwo.start();
+    rpcServerTwo.provide('test', serviceFn);
+})();
 
 // Not log in this case
 // setTimeout(() => {

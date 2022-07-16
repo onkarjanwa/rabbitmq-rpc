@@ -57,3 +57,19 @@ rpcClient.start().then(() => {
     rpcClient.call('test', {id: 1}).then(console.log).catch(console.log);
 });
 ```
+
+# Multiple consumer on one queue
+
+# Todo 
+1. Support for exchange [https://amqp-node.github.io/amqplib/channel_api.html#channel_assertExchange]
+   This is required in case we want to run synchronous operations with heavy load. Using exchange we would be able to route messages of specific event or category to the specific server (consumer). That way we would be able to handle load of the server.
+
+    The current implementation supports synchronous operations through one server (consumer) only.
+
+2. Synchronous messaging to multiple servers
+
+# Challenges
+1. Synchronous operation through messaging on multiple servers
+   1. Clients will have list of all the synchronous queue and will select only one for one type event / category operation that needs to be synchronous.
+2. Multiple clients of one queue - How specific message will be delivered to the caller.
+   1. By having a separate queue for each client.
