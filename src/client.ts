@@ -127,9 +127,14 @@ export class RPCClient implements IRPCClient {
     ): Promise<T> {
         return new Promise((resolve, reject) => {
             const correlationId = v4();
-            this.eventHandler.once(correlationId, (response: any) => {
-                this.log(`Service call completed - ${serviceName} for request -  ${correlationId}`);
-                resolve(response);
+            this.eventHandler.once(correlationId, (response: any, type?: any) => {
+                if (type === 'error') {
+                    this.log(`Service call failed - ${serviceName} for request - ${correlationId}`);
+                    reject(response)
+                } else {
+                    this.log(`Service call completed - ${serviceName} for request - ${correlationId}`);
+                    resolve(response)
+                }
             });
 
             this.connectIfNotConnected()
@@ -165,7 +170,8 @@ export class RPCClient implements IRPCClient {
 
             const correlationId = message.properties.correlationId;
             const messageBody = JSON.parse(message.content.toString('utf8'));
-            this.eventHandler.emit(correlationId, messageBody);
+            const type = message.properties.type
+            this.eventHandler.emit(correlationId, messageBody, type);
         }, {
             noAck: true,
         });
