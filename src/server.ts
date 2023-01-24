@@ -18,8 +18,8 @@ export class RPCServer implements IRPCServer {
     private debug: boolean = false;
     private logger: IRPCLogger = new RPCConsoleLogger('RabbitMQ RPCServer');
     private channelRecoveryTryCount: number = 0;
-    private readonly channelRecoveryMaxTryCount: number = 10;
-    private readonly reconnectTimeInSeconds: number = 1;
+    private channelRecoveryMaxTryCount: number = 10;
+    private reconnectTimeInSeconds: number = 1;
     private reconnectEnable: boolean = true;
     private sendToQueueErrors: any = {};
     private channelSetupTS: number;
@@ -59,6 +59,24 @@ export class RPCServer implements IRPCServer {
      */
     public setChannelPrefetchCount(channelPrefetchCount: number) {
         this.channelPrefetchCount = channelPrefetchCount;
+    }
+
+    /**
+     * Set connection recovery max try count
+     * If you want to retry for 15 min then
+     * connectionRecoveryMaxTryCount = 15 * 60 / connectionReconnectTimeInSeconds
+     * @param connectionRecoveryMaxTryCount
+     */
+    public setConnectionRecoveryMaxTryCount(connectionRecoveryMaxTryCount: number) {
+        this.channelRecoveryMaxTryCount = connectionRecoveryMaxTryCount;
+    }
+
+    /**
+     * Set connection reconnect time
+     * @param connectionReconnectTimeInSeconds value should be in seconds
+     */
+    public setConnectionReconnectTime(connectionReconnectTimeInSeconds: number) {
+        this.reconnectTimeInSeconds = connectionReconnectTimeInSeconds;
     }
 
     /**

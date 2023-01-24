@@ -21,8 +21,8 @@ export class RPCClient implements IRPCClient {
     private debug: boolean = false;
     private logger: IRPCLogger = new RPCConsoleLogger('RabbitMQ RPCClient');
     private channelRecoveryTryCount: number = 0;
-    private readonly channelRecoveryMaxTryCount: number = 10;
-    private readonly reconnectTimeInSeconds: number = 1;
+    private channelRecoveryMaxTryCount: number = 10;
+    private reconnectTimeInSeconds: number = 1;
 
     /**
      * RPCClient constructor
@@ -56,6 +56,24 @@ export class RPCClient implements IRPCClient {
      */
     public setDebug(debug: boolean) {
         this.debug = debug;
+    }
+
+    /**
+     * Set connection recovery max try count
+     * If you want to retry for 15 min then
+     * connectionRecoveryMaxTryCount = 15 * 60 / connectionReconnectTimeInSeconds
+     * @param connectionRecoveryMaxTryCount
+     */
+    public setConnectionRecoveryMaxTryCount(connectionRecoveryMaxTryCount: number) {
+        this.channelRecoveryMaxTryCount = connectionRecoveryMaxTryCount;
+    }
+
+    /**
+     * Set connection reconnect time
+     * @param connectionReconnectTimeInSeconds value should be in seconds
+     */
+    public setConnectionReconnectTime(connectionReconnectTimeInSeconds: number) {
+        this.reconnectTimeInSeconds = connectionReconnectTimeInSeconds;
     }
 
     /**

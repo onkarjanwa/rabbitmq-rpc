@@ -3,6 +3,8 @@ export type RPCServiceProviderFunction<D, V> = (data: D) => Promise<V>;
 export interface IRPCServer {
     setDebug(debug: boolean): void;
     setChannelPrefetchCount(channelPrefetchCount: number): void;
+    setConnectionRecoveryMaxTryCount(connectionRecoveryMaxTryCount: number): void;
+    setConnectionReconnectTime(connectionReconnectTimeInSeconds: number): void;
     start(): Promise<void>;
     stop(): Promise<void>;
     provide<D, V>(
@@ -12,6 +14,8 @@ export interface IRPCServer {
 }
 
 export interface IRPCClient {
+    setConnectionRecoveryMaxTryCount(connectionRecoveryMaxTryCount: number): void;
+    setConnectionReconnectTime(connectionReconnectTimeInSeconds: number): void;
     setDebug(debug: boolean): void;
     start(): Promise<void>;
     stop(): Promise<void>;
